@@ -1,0 +1,91 @@
+#include <Servo.h>
+
+
+#define stop_angle 0
+
+uint32_t count = 0;
+int state = HIGH; // HIGH is high signal, not broken light beam.
+Servo servo_main;
+int thresholdlow;
+int thresholdhigh;
+int angle=180; // measure touch point angle and give value,here 180 is taken as touch point angle
+uint32_t lastDrop = 0;
+int k=0;
+void setup()
+{
+  Serial.begin(115200);
+  Serial.println("Dropcounter ");
+}
+
+void loop()
+{
+int raw = analogRead(A0); // assumes sensor is connected to A0;
+int y;
+float voltage = 5.0 * raw / 1023;
+float lastdrop;
+int n=0;
+
+
+  if (voltage < 2.0 && state == HIGH)
+  {
+    state = LOW;
+    count = count + 1; // or count++;
+    lastDrop = millis(); // remember time of last drop to prevent bouncing.
+    y = calc(lastdrop,count);
+    Serial.println(y);  // y takes the value of rate
+  }
+  
+  if (voltage > 4.0 && state == LOW )  // end of pulse, now we may expect a new one,
+  {
+    if (millis() - lastDrop > 100) state = HIGH; // only go back to state high if some time has passed.
+  } 
+
+if(y<=thresholdlow && k<=5){
+  
+    int constn;
+    constn=n+3;
+    speedcontrol(constn);
+  
+  }
+  else if (y>=thresholdhigh && k<=5){
+      int constn;
+    constn=n-3;
+    speedcontrol(constn);
+ 
+   
+  }
+
+
+
+    if(k>5)
+    { 
+      int light=HIGH;
+      emergency(light);
+      
+    }
+}
+
+
+int calc(int x,int w)
+{ int rate;
+rate = (millis()-x)/w;
+return rate;   //send the value to main as y
+  }
+
+
+int speedcontrol(int constn1)
+{
+   angle=angle+constn1;
+  servo_main.write(angle);
+  delay(5);
+  k=k+1;
+  return 0;
+ }
+
+
+void emergency(int light1)
+{
+ servo_main.write(stop_angle);
+  digitalWrite(9,HIGH); // emergency light triggers bolt to send alert, need mannual assistance
+  
+}
